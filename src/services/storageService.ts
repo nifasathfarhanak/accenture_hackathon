@@ -130,6 +130,12 @@ export function appendAuditEvent(event: Omit<AuditEvent, 'id' | 'timestamp'>): v
 }
 
 // Data access operations
+export function saveObligations(obligations: RegulatoryObligation[]): void {
+  const data = loadStorageData();
+  data.obligations = obligations;
+  saveStorageData(data);
+}
+
 export function getObligations(): RegulatoryObligation[] {
   return loadStorageData().obligations;
 }

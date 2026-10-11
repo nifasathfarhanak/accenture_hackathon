@@ -16,7 +16,8 @@ import {
   saveDraft, 
   updateCoverage, 
   computeSummaryMetrics, 
-  exportRegisterCSV 
+  exportRegisterCSV,
+  saveObligations
 } from '../../../services/storageService';
 import { SummaryMetricsBar } from './SummaryMetrics';
 import { ObligationExplorer } from './ObligationExplorer';
@@ -33,6 +34,7 @@ import { SettingsDialog } from './SettingsDialog';
 import { RegulatoryTraceabilityChain } from './RegulatoryTraceabilityChain';
 import { RemediationAdvisor } from './RemediationAdvisor';
 import { SimulationModal } from './SimulationModal';
+import { AIIngestionModal } from './AIIngestionModal';
 import { Button } from '../../ui/Button';
 import { useToast } from '../../ui/Toast';
 import { 
@@ -43,7 +45,8 @@ import {
   Sparkles, 
   CheckCircle2, 
   AlertCircle,
-  FlaskConical
+  FlaskConical,
+  Brain
 } from 'lucide-react';
 
 interface MappingWorkbenchProps {
@@ -94,6 +97,7 @@ export const MappingWorkbench: React.FC<MappingWorkbenchProps> = ({
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const [isAIIngestionOpen, setIsAIIngestionOpen] = useState(false);
   const [activeScenario, setActiveScenario] = useState('baseline');
 
   // Active target mapping for review dialogs
@@ -312,6 +316,26 @@ export const MappingWorkbench: React.FC<MappingWorkbenchProps> = ({
     }
   };
 
+  // AI Ingestion: add Gemini-extracted obligations to storage and state
+  const handleAddAIObligations = (newObligations: RegulatoryObligation[]) => {
+    if (!newObligations.length) return;
+    try {
+      saveObligations([...obligations, ...newObligations]);
+      setObligations(prev => [...prev, ...newObligations]);
+      addToast({
+        type: 'success',
+        title: `${newObligations.length} AI Obligation${newObligations.length !== 1 ? 's' : ''} Added`,
+        description: 'Gemini-extracted obligations are now visible in the explorer. Status: Under Review.'
+      });
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Failed to Save Obligations',
+        description: err instanceof Error ? err.message : 'Storage write failed.'
+      });
+    }
+  };
+
   // Save Draft handler
   const handleSaveDraft = async (assessments: CoverageAssessment[], notes: string) => {
     if (!activeReviewMapping) return;
@@ -351,6 +375,23 @@ export const MappingWorkbench: React.FC<MappingWorkbenchProps> = ({
 
         {/* Header Actions */}
         <div className="flex items-center gap-2.5">
+          {/* AI INGESTION BUTTON — primary differentiator */}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIsAIIngestionOpen(true)}
+            className="text-xs relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              border: 'none',
+              boxShadow: '0 0 16px rgba(99,102,241,0.4)'
+            }}
+          >
+            <Brain className="w-3.5 h-3.5 mr-1.5" />
+            AI Ingest Regulation
+            <span className="ml-1.5 text-[9px] font-bold opacity-80">GEMINI</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -539,6 +580,12 @@ export const MappingWorkbench: React.FC<MappingWorkbenchProps> = ({
         onClose={() => setIsSimulationOpen(false)}
         activeScenario={activeScenario}
         onApplyScenario={handleApplyScenario}
+      />
+
+      <AIIngestionModal
+        isOpen={isAIIngestionOpen}
+        onClose={() => setIsAIIngestionOpen(false)}
+        onAddObligations={handleAddAIObligations}
       />
     </div>
   );
